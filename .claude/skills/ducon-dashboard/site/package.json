@@ -1,0 +1,18 @@
+{
+  "name": "ducon-content-desk-site",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler pages dev public --port 8788",
+    "db:local": "wrangler d1 execute ducon-desk --local --file=schema.sql",
+    "db:remote": "wrangler d1 execute ducon-desk --remote --file=schema.sql",
+    "skill:sync": "node tools/sync-skill.mjs",
+    "deploy": "node tools/sync-skill.mjs && wrangler pages deploy public --project-name ducon-content-desk"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  },
+  "allowScripts": {
+    "workerd@1.20261006.1": true,
+    "esbuild@0.28.2": true
+  }
+}

@@ -1,0 +1,8 @@
+name = "ducon-content-desk"
+compatibility_date = "2026-10-01"
+pages_build_output_dir = "public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ducon-desk"
+database_id = "1f0de1d5-efd1-4e93-a0a3-2072e6ee163b"

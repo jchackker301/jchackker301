@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ducon-desk-local",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["wrangler", "pages", "dev", "public", "--d1=DB", "--port", "8788"],
+      "port": 8788
+    }
+  ]
+}
