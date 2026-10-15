@@ -1,0 +1,38 @@
+{
+ "source": "/tmp/claude-0/-home-user-jchackker301/c20b8bff-2630-5ace-9509-8675197a7043/images/3.jpg",
+ "palette": {
+  "grain_dark": [
+   137,
+   122,
+   95
+  ],
+  "base_a": [
+   165,
+   152,
+   127
+  ],
+  "base_b": [
+   184,
+   172,
+   150
+  ],
+  "accent": [
+   174,
+   152,
+   115
+  ],
+  "bloom": [
+   198,
+   189,
+   173
+  ],
+  "grain_light": [
+   210,
+   203,
+   190
+  ]
+ },
+ "accent_strength": 14.46,
+ "wash_contrast": 7.56,
+ "tile_area": 0.559
+}

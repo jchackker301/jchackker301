@@ -1,0 +1,113 @@
+{
+ "monsoon-r": {
+  "finish": "riven",
+  "accent_amt": 0.2,
+  "source": "estimated from chat photos - run collect_wash.py on the Monsoon-R photos to refine",
+  "palette": {
+   "grain_dark": [
+    48,
+    48,
+    51
+   ],
+   "base_a": [
+    86,
+    86,
+    89
+   ],
+   "base_b": [
+    112,
+    112,
+    114
+   ],
+   "accent": [
+    128,
+    126,
+    122
+   ],
+   "bloom": [
+    150,
+    149,
+    146
+   ],
+   "grain_light": [
+    190,
+    190,
+    186
+   ]
+  }
+ },
+ "iris-f": {
+  "finish": "flat",
+  "accent_amt": 0.7,
+  "source": "estimated from chat photos - run collect_wash.py on the Iris-F photos to refine",
+  "palette": {
+   "grain_dark": [
+    82,
+    82,
+    86
+   ],
+   "base_a": [
+    122,
+    122,
+    126
+   ],
+   "base_b": [
+    166,
+    160,
+    144
+   ],
+   "accent": [
+    196,
+    158,
+    82
+   ],
+   "bloom": [
+    182,
+    176,
+    160
+   ],
+   "grain_light": [
+    214,
+    210,
+    198
+   ]
+  }
+ },
+ "desert-r": {
+  "finish": "riven",
+  "palette": {
+   "grain_dark": [
+    138,
+    121,
+    93
+   ],
+   "base_a": [
+    168,
+    154,
+    129
+   ],
+   "base_b": [
+    186,
+    174,
+    154
+   ],
+   "accent": [
+    171,
+    148,
+    112
+   ],
+   "bloom": [
+    200,
+    190,
+    173
+   ],
+   "grain_light": [
+    214,
+    208,
+    197
+   ]
+  },
+  "accent_amt": 0.61,
+  "source": "5 photo(s) via collect_wash.py"
+ }
+}

@@ -305,13 +305,137 @@ def build_material(name, p, seed):
     return mat
 
 
+
+# ---------------------------------------------------------------- real wash patterns (library)
+LIB_DEFAULT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "library")
+
+
+def load_library(lib):
+    import json
+    colors, patterns = {}, []
+    cp = os.path.join(lib, "colors.json")
+    if os.path.exists(cp):
+        with open(cp) as f:
+            colors = json.load(f)
+    pat = os.path.join(lib, "patterns")
+    for root, dirs, files in os.walk(pat):
+        dirs.sort()
+        if "wash.png" in files:
+            finish, name, stem = os.path.relpath(root, pat).replace(os.sep, "/").split("/")[:3]
+            patterns.append(dict(finish=finish, name=name, id=f"{name}/{stem}", dir=root))
+    return colors, patterns
+
+
+def color_to_params(entry, base):
+    p = dict(base)
+    for k, v in entry["palette"].items():
+        p[k] = tuple(v)
+    p["accent_amt"] = entry.get("accent_amt", p["accent_amt"])
+    return p
+
+
+def load_img(path, color=False):
+    img = bpy.data.images.load(os.path.abspath(path), check_existing=True)
+    img.colorspace_settings.name = "sRGB" if color else "Non-Color"
+    return img
+
+
+def build_pattern_material(name, p, pdir, riven, size):
+    """Base colour = YOUR palette painted through the real wash silhouettes of one scanned slab."""
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    t = mat.node_tree
+    t.nodes.clear()
+    b = NB(t)
+    try:
+        mat.displacement_method = "BOTH"
+    except AttributeError:
+        mat.cycles.displacement_method = "BOTH"
+
+    # tile face -> 0..1, random 180 deg turn per tile so a reused scan never looks repeated
+    tc = b.add("ShaderNodeTexCoord", -2200, 0)
+    oi = b.add("ShaderNodeObjectInfo", -2200, -250)
+    turn = b.math("ROUND", oi.outputs["Random"], None, -2000, -250)
+    turn = b.math("MULTIPLY", turn.outputs[0], math.pi, -1850, -250)
+    rot = b.add("ShaderNodeCombineXYZ", -1700, -250)
+    b.link(turn.outputs[0], rot.inputs[2])
+    mp = b.add("ShaderNodeMapping", -1500, 0)
+    mp.inputs["Scale"].default_value = (1.0 / size, 1.0 / size, 1.0)
+    mp.inputs["Location"].default_value = (0.5, 0.5, 0.0)
+    b.link(tc.outputs["Object"], mp.inputs["Vector"])
+    b.link(rot.outputs[0], mp.inputs["Rotation"])
+    UV = mp.outputs[0]
+
+    def tex(file, y):
+        n = b.add("ShaderNodeTexImage", -1250, y)
+        n.image = load_img(os.path.join(pdir, file))
+        n.extension = "EXTEND"
+        b.link(UV, n.inputs["Vector"])
+        return n.outputs["Color"]
+
+    wash, accent = tex("wash.png", 400), tex("accent.png", 100)
+    grain, relief = tex("grain.jpg", -200), tex("relief.jpg", -500)
+
+    col = b.ramp(wash, [(0.0, rgba(p["base_a"])), (0.55, rgba(p["base_b"])), (1.0, rgba(p["bloom"]))], -950, 400)
+    acc = b.ramp(accent, [(0.45, grey(0)), (0.98, grey(1))], -950, 100)
+    acc_amt = b.math("MULTIPLY", acc.outputs["Color"], p["accent_amt"], -700, 100)
+    c = b.mix(acc_amt.outputs[0], col.outputs["Color"], rgba(p["accent"]), "MIX", -500, 350)
+    jit = b.mix(p["grain_contrast"], c.outputs[2], (0.5, 0.5, 0.5, 1), "OVERLAY", -300, 350)
+    b.link(grain, jit.inputs[7])
+    dark = b.ramp(grain, [(0.0, grey(1)), (0.12, grey(1)), (0.16, grey(0))], -700, -200, "CONSTANT")
+    light = b.ramp(grain, [(0.0, grey(0)), (0.9, grey(0)), (0.91, grey(1))], -700, -450, "CONSTANT")
+    c = b.mix(dark.outputs["Color"], jit.outputs[2], rgba(p["grain_dark"]), "MIX", -100, 350)
+    c = b.mix(light.outputs["Color"], c.outputs[2], rgba(p["grain_light"]), "MIX", 100, 350)
+
+    # relief map -> height; flat finish keeps only a whisper of it
+    rc = b.math("SUBTRACT", relief, 0.5, -900, -700)
+    h = b.math("MULTIPLY", rc.outputs[0], 0.0016 * riven + 0.0002, -700, -700)
+    gc = b.math("SUBTRACT", grain, 0.5, -900, -900)
+    h2 = b.math("MULTIPLY", gc.outputs[0], 0.00025, -700, -900)
+    h = b.math("ADD", h.outputs[0], h2.outputs[0], -500, -800)
+
+    bump = b.add("ShaderNodeBump", 100, -500)
+    bump.inputs["Strength"].default_value = 0.8
+    bump.inputs["Distance"].default_value = 1.0
+    b.link(h.outputs[0], bump.inputs["Height"])
+    rough = b.math("ADD", b.math("MULTIPLY", grain, 0.08, -100, -250).outputs[0], p["rough"] - 0.04, 100, -250, clamp=True)
+    bsdf = b.add("ShaderNodeBsdfPrincipled", 400, 200)
+    b.link(c.outputs[2], bsdf.inputs["Base Color"])
+    b.link(rough.outputs[0], bsdf.inputs["Roughness"])
+    b.link(bump.outputs["Normal"], bsdf.inputs["Normal"])
+    bsdf.inputs["Specular IOR Level"].default_value = 0.3
+    disp = b.add("ShaderNodeDisplacement", 400, -500)
+    disp.inputs["Midlevel"].default_value = 0.0
+    b.link(h.outputs[0], disp.inputs["Height"])
+    out = b.add("ShaderNodeOutputMaterial", 700, 0)
+    b.link(bsdf.outputs[0], out.inputs["Surface"])
+    b.link(disp.outputs[0], out.inputs["Displacement"])
+    mat["_albedo"] = c.name
+    mat["_rough"] = rough.name
+    mat["_height"] = h.name
+    return mat
+
+
+def parse_hex_overrides(text, p):
+    """--set base_a=#aabbcc,accent=#c89a50,accent_amt=0.5"""
+    p = dict(p)
+    for part in text.split(","):
+        k, v = part.split("=")
+        k, v = k.strip(), v.strip()
+        if v.startswith("#"):
+            p[k] = tuple(int(v[i:i + 2], 16) for i in (1, 3, 5))
+        else:
+            p[k] = float(v)
+    return p
+
+
 # ---------------------------------------------------------------- geometry & scene
 def make_tile(name, size, thick, mat, loc, displace):
     bpy.ops.mesh.primitive_cube_add(size=1, location=(loc[0], loc[1], thick / 2))
     ob = bpy.context.active_object
     ob.name = name
     ob.scale = (size, size, thick)
-    bpy.ops.object.transform_apply(scale=True)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     bev = ob.modifiers.new("Arris", "BEVEL")
     bev.width = 0.002
     bev.segments = 2
@@ -449,29 +573,86 @@ def parse():
     ap.add_argument("--bake-res", type=int, default=2048)
     ap.add_argument("--save")
     ap.add_argument("--keep-scene", action="store_true", help="do not clear the open scene")
+    ap.add_argument("--library", default=LIB_DEFAULT)
+    ap.add_argument("--color", help="colour name from library/colors.json (e.g. monsoon-r)")
+    ap.add_argument("--finish", choices=["riven", "flat"], help="override the colour's own finish")
+    ap.add_argument("--pattern", help="wash pattern: random (default with --color), none, a name (desert-r) or name/photo (desert-r/4)")
+    ap.add_argument("--set", help="tweak colours: base_a=#aabbcc,accent=#c89a50,accent_amt=0.5")
+    ap.add_argument("--list", action="store_true", help="list library colours and patterns, then stop")
     return ap.parse_args(argv)
 
 
 def main():
+    import random
     args = parse()
+    colors, patterns = load_library(args.library)
+    if args.list:
+        print("COLOURS:")
+        for k, v in colors.items():
+            print(f"  {k:14s} {v.get('finish', '?'):6s} {v.get('source', '')}")
+        print("PATTERNS:")
+        for pt in patterns:
+            print(f"  {pt['finish']:6s} {pt['id']}")
+        return
     if not args.keep_scene:
         bpy.ops.wm.read_factory_settings(use_empty=True)
+
+    # colour: library colour > preset; then photo match; then hand tweaks
     p = PRESETS[args.preset]
+    finish = "flat" if p["riven"] == 0 else "riven"
+    label = args.preset
+    if args.color:
+        if args.color not in colors:
+            sys.exit(f"unknown colour {args.color}; have: {', '.join(colors)}")
+        p = color_to_params(colors[args.color], PRESETS["desert"])
+        finish = colors[args.color].get("finish", finish)
+        label = args.color
+    if args.finish:
+        finish = args.finish
+    p = dict(p, riven=1.0 if finish == "riven" else 0.0)
     if args.match:
         crop = tuple(int(v) for v in args.crop.split(",")) if args.crop else None
         p = palette_from_photo(args.match, crop, p)
-    mat = build_material(f"Paver_{args.preset}", p, args.seed)
+    if args.set:
+        p = parse_hex_overrides(args.set, p)
+
+    # pattern pool: real scans (same finish first) or procedural
+    want = args.pattern or ("random" if args.color else "none")
+    pool = []
+    if want != "none":
+        if want == "random":
+            pool = [pt for pt in patterns if pt["finish"] == finish] or patterns
+        else:
+            pool = [pt for pt in patterns if pt["id"] == want or pt["name"] == want]
+        if not pool:
+            print(f"no pattern '{want}' in library, using procedural wash")
+    rng = random.Random(args.seed)
+    mats = []
+    if pool:
+        for pt in pool:
+            mats.append(build_pattern_material(f"Paver_{label}_{finish}_{pt['id'].replace('/', '_')}",
+                                               p, pt["dir"], p["riven"], args.size))
+        print("PATTERNS", [pt["id"] for pt in pool])
+    else:
+        mats.append(build_material(f"Paver_{label}", p, args.seed))
+    print("COLOUR", label, finish)
+
     joint = 0.008
     pitch = args.size + joint
     n = max(1, args.grid)
     span = n * pitch
+    shuffled = []
     for i in range(n):
         for j in range(n):
+            if not shuffled:
+                shuffled = mats[:]
+                rng.shuffle(shuffled)
             loc = ((i - (n - 1) / 2) * pitch, (j - (n - 1) / 2) * pitch)
-            make_tile(f"Paver_{i}_{j}", args.size, args.thick, mat, loc, args.displace)
+            make_tile(f"Paver_{i}_{j}", args.size, args.thick, shuffled.pop(), loc, args.displace)
     setup_scene(args, span)
     if args.bake:
-        bake_plane(mat, args)
+        for m in mats:
+            bake_plane(m, args)
     if args.render:
         bpy.context.scene.cycles.samples = args.samples
         bpy.context.scene.render.filepath = os.path.abspath(args.render)
