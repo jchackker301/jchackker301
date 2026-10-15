@@ -28,6 +28,7 @@ Ask Jayson for the folder if he did not give it. Then run:
 - It prints `OUT = ...`. Remember OUT. It is `FOLDER/_shotfinder`.
 - It prints, for each video, the page picture(s) to look at and the form to fill.
 - Speed: about 30-60 s per 8-min video. Set the Bash timeout to 600000. For many videos, run it in the background and wait.
+- Running scan again with the same settings keeps forms you already filled.
 - Optional: add `--recursive` for subfolders. If a video gets 0 tiles and Jayson needs more, run again with `--loose`.
 
 ## Step 2: review, ONE video at a time
@@ -151,5 +152,7 @@ If 0 clips were kept, say so and give the main reason, for example: `Tapos na. 2
 | a video has 0 tiles | it is all bad footage. Say so. Run `SF scan "FOLDER" --loose` only if Jayson wants more |
 | `python` not found | try `py`, then `python3` |
 | scan is slow | normal for 4K. Leave it running; do not stop it |
+| `cannot write` (server drive like `L:\`, read-only folder) | run scan again with `--out "C:\Users\<name>\Videos\shotfinder"` and use that path as OUT |
+| `form does not match the last scan` | the scan was run again with other settings. Run `SF scan` again with the same settings; it writes a fresh form (old answers are saved as `.old.txt`) and you fill it |
 
 Scan options (only if Jayson asks): `--min 3` shortest shot, `--max 10` longest shot (never above 10), `--tiles 12` tiles per video (6 per page), `--workers N` videos at the same time, `--fps 4` checks per second.

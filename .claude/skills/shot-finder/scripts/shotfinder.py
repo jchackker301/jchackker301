@@ -81,24 +81,22 @@ def safe(s, n=40):
 
 def probe(ff, path):
     """Return (width, height, duration) after rotation, using one decoded frame."""
-    cap = cv2.VideoCapture(str(path))
-    fps = cap.get(cv2.CAP_PROP_FPS) or 0
-    n = cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0
-    cap.release()
-    dur = n / fps if fps > 0 and n > 0 else 0.0
+    dur = 0.0
     r = run([ff, "-v", "error", "-i", str(path), "-frames:v", "1", "-f", "image2pipe",
              "-vcodec", "png", "-"], capture_output=True)
     img = cv2.imdecode(np.frombuffer(r.stdout, np.uint8), cv2.IMREAD_GRAYSCALE) if r.stdout else None
     if img is None:
         return None
     h, w = img.shape[:2]
-    if dur <= 0:  # fall back to ffmpeg's own duration line
-        err = run([ff, "-i", str(path)], capture_output=True, text=True, errors="ignore").stderr
-        for line in err.splitlines():
-            if "Duration:" in line:
+    err = run([ff, "-i", str(path)], capture_output=True, text=True, errors="ignore").stderr
+    for line in err.splitlines():
+        if "Duration:" in line:
+            try:
                 hh, mm, ss = line.split("Duration:")[1].split(",")[0].strip().split(":")
                 dur = int(hh) * 3600 + int(mm) * 60 + float(ss)
-                break
+            except ValueError:  # "Duration: N/A": measure() length is used instead
+                pass
+            break
     return w, h, dur
 
 
@@ -143,7 +141,8 @@ def _measure(ff, path, fps, w, h, hw):
             diff = float(np.abs(small[b:-b, b:-b] - moved[b:-b, b:-b]).mean())
             corr = float(np.minimum(hist, prev_hist).sum())  # histogram intersection
             cut = diff > 28 and corr < 0.55
-        rows.append(dict(t=len(rows) / fps, lap=lap, mean=mean, std=std, clip=clip,
+        tiny = cv2.resize(g, (32, 18), interpolation=cv2.INTER_AREA).astype(np.float32).ravel()
+        rows.append(dict(t=len(rows) / fps, lap=lap, mean=mean, std=std, clip=clip, tiny=tiny,
                          shift=shift, dx=dxp, dy=dyp, diff=diff, cut=cut, hist=hist))
         prev_small, prev_hist = small, hist
     p.wait()
@@ -202,13 +201,22 @@ def candidates(rows, fps, g, min_len, max_len):
             best = idx[int(np.argmax(sl))]
             move = float(np.mean([rows[i]["shift"] for i in idx]))
             act = float(np.mean([rows[i]["diff"] for i in idx]))
-            cam = "STATIC" if move < 0.3 else ("SLOW-MOVE" if move < 2 else "MOVING")
+            cam = "STATIC" if move < 0.15 else ("SLOW-MOVE" if move < 2 else "MOVING")
             action = "NONE" if act < 1.5 else ("LOW" if act < 5 else "HIGH")
             segs.append(dict(start=round(s0, 2), end=round(s1, 2), dur=round(s1 - s0, 2),
                              score=int(round(100 * (0.55 * sharp_n + 0.25 * stab + 0.20 * expo))),
                              cam=cam, action=action,
-                             thumb_t=round(rows[best]["t"], 2), _hist=rows[best]["hist"]))
+                             thumb_t=round(rows[best]["t"], 2), _hist=rows[best]["hist"], _tiny=rows[best]["tiny"]))
     return segs, good.tolist()
+
+
+def same_look(a, b):
+    """A repeat: same tones close in time, or same tones and same layout anywhere."""
+    tones = float(np.minimum(a["_hist"], b["_hist"]).sum())
+    x, y = a["_tiny"] - a["_tiny"].mean(), b["_tiny"] - b["_tiny"].mean()
+    layout = float((x * y).sum() / (np.sqrt((x * x).sum() * (y * y).sum()) + 1e-9))
+    near = abs(a["thumb_t"] - b["thumb_t"]) < 30
+    return (tones > 0.93 and near) or (tones > 0.85 and layout > 0.90)
 
 
 def diverse_top(segs, n):
@@ -216,14 +224,13 @@ def diverse_top(segs, n):
     for s in sorted(segs, key=lambda s: -s["score"]):
         if len(chosen) >= n:
             break
-        if any(float(np.minimum(s["_hist"], c["_hist"]).sum()) > 0.93
-               and abs(s["thumb_t"] - c["thumb_t"]) < 30 for c in chosen):
+        if any(same_look(s, c) for c in chosen):
             continue  # near-duplicate of a shot already chosen
         chosen.append(s)
     chosen.sort(key=lambda s: s["start"])
     for i, s in enumerate(chosen, 1):
         s["tile"] = i
-        s.pop("_hist", None)
+        s.pop("_hist", None); s.pop("_tiny", None)
     return chosen
 
 
@@ -375,6 +382,23 @@ def write_form(out, v):
     return p
 
 
+def tile_keys(v):
+    return {(s["tile"], f"{mmss(s['start'])}-{mmss(s['end'])}") for s in v["shots"]}
+
+
+def form_matches(path, v):
+    """True when the form was made for exactly these tiles (same numbers and times)."""
+    keys = set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip().upper().startswith("TILE "):
+            parts = [x.strip() for x in line.split("|")]
+            try:
+                keys.add((int(parts[0].split()[1]), parts[1] if len(parts) > 1 else ""))
+            except (IndexError, ValueError):
+                return False
+    return keys == tile_keys(v)
+
+
 def parse_form(path):
     """Return (video_info, {tile: fields}, errors)."""
     info, tiles, errs, cur = {}, {}, [], None
@@ -454,7 +478,11 @@ def cmd_scan(a):
     if not folder.is_dir():
         sys.exit(f"ERROR: not a folder: {folder}")
     out = Path(a.out).resolve() if a.out else folder / OUT_NAME
-    (out / "collages").mkdir(parents=True, exist_ok=True)
+    try:
+        (out / "collages").mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        sys.exit(f"ERROR: cannot write {out} ({e.strerror}). Add --out with a folder on this PC, "
+                 f'for example --out "%USERPROFILE%\\Videos\\shotfinder"')
     walk = folder.rglob("*") if a.recursive else folder.iterdir()
     vids = sorted(p for p in walk if p.is_file() and p.suffix.lower() in VIDEO_EXT
                   and OUT_NAME not in p.parts and not p.name.startswith("._"))
@@ -482,10 +510,14 @@ def cmd_scan(a):
         if r.get("error"):
             continue
         form = review_path(out, r)
-        if form.exists() and not parse_form(form)[2]:
-            print(f"  VIDEO {r['no']:02d}: already reviewed, form kept: {form}")
-            continue
-        write_form(out, r)
+        if form.exists() and form_matches(form, r):  # same tiles as before: keep the answers
+            if not parse_form(form)[2]:
+                print(f"  VIDEO {r['no']:02d}: already reviewed, form kept: {form}")
+                continue
+        else:
+            if form.exists():
+                form.replace(form.with_suffix(".old.txt"))  # tiles changed: old answers set aside
+            write_form(out, r)
         print(f"  VIDEO {r['no']:02d}: look at {' + '.join(r['collages'])}\n            then fill {form}")
     print("\nWhen all forms are filled: check OUT, then export OUT")
 
@@ -498,6 +530,9 @@ def cmd_check(a):
         p = review_path(a.out, v)
         if not p.exists():
             print(f"VIDEO {v['no']:02d}: form missing, run scan again"); bad += 1; continue
+        if not form_matches(p, v):
+            print(f"VIDEO {v['no']:02d}: form does not match the last scan. Run scan again (it makes a fresh form)")
+            bad += 1; continue
         _, tiles, errs = parse_form(p)
         missing = [s["tile"] for s in v["shots"] if s["tile"] not in tiles]
         errs += [f"TILE {t:02d} missing" for t in missing]
@@ -517,7 +552,7 @@ def cmd_status(a):
         if v.get("error"):
             print(f"VIDEO {v['no']:02d}: ERROR {v['error']}"); continue
         p = review_path(a.out, v)
-        done = p.exists() and not parse_form(p)[2]
+        done = p.exists() and form_matches(p, v) and not parse_form(p)[2]
         todo += not done
         print(f"VIDEO {v['no']:02d}: {'done' if done else 'TO REVIEW'} | {len(v['shots'])} tiles | {p}")
     print(f"\n{todo} video(s) still to review.")
@@ -544,7 +579,7 @@ def cmd_export(a):
         if v.get("error"):
             report += [f"VIDEO {v['no']:02d} {v['name']}: ERROR {v['error']}", ""]; continue
         form = review_path(out, v)
-        info, tiles, errs = parse_form(form) if form.exists() else ({}, {}, ["no form"])
+        info, tiles, errs = parse_form(form) if form.exists() and form_matches(form, v) else ({}, {}, ["no form"])
         reviewed = not errs
         if not reviewed and not a.all:
             print(f"  skip VIDEO {v['no']:02d}: form not complete (run check, or export --all)")
@@ -563,7 +598,7 @@ def cmd_export(a):
             subj = f.get("SUBJECT", "unreviewed")
             name = (f"{v['no']:02d}_{typ}_{use}_{slug(subj)}_t{s['tile']:02d}_"
                     f"{mmss(s['start']).replace(':', 'm')}s.mp4")
-            enc = ["-c", "copy"] if a.copy else ["-c:v", "libx264", "-crf", "18", "-preset", "superfast",
+            enc = ["-c:v", "copy", "-c:a", "aac", "-b:a", "192k"] if a.copy else ["-c:v", "libx264", "-crf", "18", "-preset", "superfast",
                                                     "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k"]
             cmd = [ff, "-v", "error", "-y", "-ss", f"{s['start']:.2f}", "-i", v["file"], "-t", f"{s['dur']:.2f}",
                    "-map", "0:v:0", "-map", "0:a?", *enc, "-movflags", "+faststart", str(clips / name)]
