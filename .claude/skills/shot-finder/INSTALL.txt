@@ -1,0 +1,25 @@
+SHOT FINDER - INSTALL (one time per PC)
+
+1. Python 3.9 or newer
+   Windows: winget install Python.Python.3.12   (or python.org, tick "Add to PATH")
+
+2. Unzip so this folder is here:
+   Windows: C:\Users\<you>\.claude\skills\shot-finder\SKILL.md
+   Mac:     ~/.claude/skills/shot-finder/SKILL.md
+
+3. Install the libraries (ffmpeg comes inside imageio-ffmpeg):
+   python -m pip install -r "%USERPROFILE%\.claude\skills\shot-finder\requirements.txt"
+   (Mac: python3 -m pip install -r ~/.claude/skills/shot-finder/requirements.txt)
+
+4. Check:
+   python "%USERPROFILE%\.claude\skills\shot-finder\scripts\shotfinder.py" doctor
+   It must print READY.
+
+5. Use it in Claude Code: type /shot-finder and give the folder of videos.
+   Works with Haiku. Output goes to <folder>\_shotfinder (clips, REPORT.txt, report.csv).
+   Server drive (L:\) is read-only? Add --out "C:\Users\<you>\Videos\shotfinder".
+
+Files
+  SKILL.md               the instructions Claude follows
+  scripts/shotfinder.py  the engine (scan, check, status, export, doctor)
+  requirements.txt       Python libraries

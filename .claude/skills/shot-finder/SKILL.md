@@ -21,6 +21,7 @@ Reply to Jayson in short Taglish. Follow the steps EXACTLY. Do not write code. D
 Run `SF doctor`. If it prints READY, go to step 1.
 If it fails, run this line, then `SF doctor` again:
 `python -m pip install numpy opencv-python-headless imageio-ffmpeg`
+(Same list is in `requirements.txt`. Full first-time steps: `INSTALL.txt`.)
 
 ## Step 1: scan
 Ask Jayson for the folder if he did not give it. Then run:
