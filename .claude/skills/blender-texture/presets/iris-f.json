@@ -1,0 +1,56 @@
+{
+  "name": "Iris-F",
+  "finish": "flat",
+  "base": [
+    0.342,
+    0.3089,
+    0.2509
+  ],
+  "dark": [
+    0.1703,
+    0.1602,
+    0.134
+  ],
+  "accent": [
+    0.372,
+    0.2506,
+    0.1056
+  ],
+  "light": [
+    0.5526,
+    0.504,
+    0.3939
+  ],
+  "accent_share": 0.074,
+  "speckle": 0.684,
+  "cloud": 0.543,
+  "stretch": 2.26,
+  "direction_deg": 0.0,
+  "wisp": 0.249,
+  "fleck": 0.026,
+  "mottle": 0.642,
+  "roughness": 0.869,
+  "riven_depth_mm": 0.0,
+  "size_mm": [
+    600,
+    600,
+    50
+  ],
+  "source_photos": [
+    "1.jpg",
+    "2.jpg"
+  ],
+  "style": {
+    "Direction": 0,
+    "Stretch": 2.64,
+    "Accent Amount": 0.0,
+    "Accent Scale": 3.5,
+    "Wisp Amount": 0.3,
+    "Edge Mottle": 1.0,
+    "Fleck Amount": 0.0,
+    "Speckle": 1.0,
+    "Cloud Amount": 0.426
+  },
+  "style_notes": "warm grey body, gold pigment streaks running sideways, broken sprinkled edges, dark grey patches, flat face",
+  "last_match": 75.3
+}

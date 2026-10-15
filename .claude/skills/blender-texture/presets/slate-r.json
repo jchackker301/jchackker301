@@ -1,0 +1,49 @@
+{
+  "name": "Slate-R",
+  "finish": "riven",
+  "base": [
+    0.045,
+    0.046,
+    0.049
+  ],
+  "dark": [
+    0.03,
+    0.031,
+    0.033
+  ],
+  "accent": [
+    0.045,
+    0.046,
+    0.049
+  ],
+  "light": [
+    0.125,
+    0.126,
+    0.13
+  ],
+  "accent_share": 0.0,
+  "speckle": 0.75,
+  "cloud": 0.35,
+  "stretch": 3.0,
+  "direction_deg": 90.0,
+  "wisp": 0.5,
+  "fleck": 0.45,
+  "mottle": 0.6,
+  "roughness": 0.9,
+  "riven_depth_mm": 1.5,
+  "size_mm": [
+    1000,
+    250,
+    50
+  ],
+  "source_photos": [],
+  "style_notes": "near-black charcoal, pale grey bands running top-to-bottom across the short side, white flecks, light riven. Coping/step piece. ESTIMATED by eye (size too) - run analyze_photo.py --size on the real Slate-R photos",
+  "style": {
+    "Direction": 90,
+    "Stretch": 3.0,
+    "Accent Amount": 0.0,
+    "Wisp Amount": 0.5,
+    "Edge Mottle": 0.6,
+    "Fleck Amount": 0.45
+  }
+}
