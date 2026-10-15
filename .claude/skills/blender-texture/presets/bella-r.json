@@ -12,9 +12,9 @@
     0.0684
   ],
   "accent": [
-    0.2431,
-    0.1603,
-    0.0802
+    0.2499,
+    0.1512,
+    0.0633
   ],
   "light": [
     0.3715,
@@ -48,8 +48,9 @@
     "Wisp Amount": 0.6,
     "Edge Mottle": 1.0,
     "Fleck Amount": 0.001,
-    "Speckle": 1.0
+    "Speckle": 1.0,
+    "Cloud Amount": 0.734
   },
   "style_notes": "dark charcoal-brown body, big soft cream-gold cloud blobs, low riven ledges",
-  "last_match": 72.0
+  "last_match": 77.1
 }
