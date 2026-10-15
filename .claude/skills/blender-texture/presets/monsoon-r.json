@@ -1,0 +1,49 @@
+{
+  "name": "Monsoon-R",
+  "finish": "riven",
+  "base": [
+    0.102,
+    0.102,
+    0.106
+  ],
+  "dark": [
+    0.062,
+    0.062,
+    0.066
+  ],
+  "accent": [
+    0.102,
+    0.102,
+    0.106
+  ],
+  "light": [
+    0.262,
+    0.262,
+    0.266
+  ],
+  "accent_share": 0.0,
+  "speckle": 0.7,
+  "cloud": 0.3,
+  "stretch": 3.0,
+  "direction_deg": 0.0,
+  "wisp": 0.35,
+  "fleck": 0.6,
+  "mottle": 0.6,
+  "roughness": 0.9,
+  "riven_depth_mm": 2.5,
+  "size_mm": [
+    600,
+    600,
+    50
+  ],
+  "source_photos": [],
+  "style_notes": "charcoal body, scattered white quartz flecks, faint pale sideways wisps, strong riven ledges. ESTIMATED by eye - run analyze_photo.py on the real Monsoon-R photos to replace the colours",
+  "style": {
+    "Direction": 0,
+    "Stretch": 3.0,
+    "Accent Amount": 0.0,
+    "Wisp Amount": 0.35,
+    "Edge Mottle": 0.6,
+    "Fleck Amount": 0.6
+  }
+}

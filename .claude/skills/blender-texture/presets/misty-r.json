@@ -1,0 +1,56 @@
+{
+  "name": "Misty-R",
+  "finish": "riven",
+  "base": [
+    0.3718,
+    0.3685,
+    0.362
+  ],
+  "dark": [
+    0.2284,
+    0.2302,
+    0.2184
+  ],
+  "accent": [
+    0.2878,
+    0.2837,
+    0.2552
+  ],
+  "light": [
+    0.5877,
+    0.5977,
+    0.5818
+  ],
+  "accent_share": 0.251,
+  "speckle": 0.458,
+  "cloud": 0.547,
+  "stretch": 2.78,
+  "direction_deg": -1.2,
+  "wisp": 1.0,
+  "fleck": 0.059,
+  "mottle": 0.493,
+  "roughness": 0.858,
+  "riven_depth_mm": 2.5,
+  "size_mm": [
+    600,
+    600,
+    50
+  ],
+  "source_photos": [
+    "9.jpg",
+    "11.jpg"
+  ],
+  "style": {
+    "Direction": 0,
+    "Stretch": 3.5,
+    "Accent Amount": 0.0,
+    "Wisp Amount": 0.55,
+    "Edge Mottle": 1.0,
+    "Fleck Amount": 0.0,
+    "Wisp Scale": 3.0,
+    "Cloud Amount": 0.962,
+    "Speckle": 0.546
+  },
+  "style_notes": "cool mid grey, pale white wisps in long sideways bands, no warm accent, soft riven",
+  "last_match": 76.7
+}

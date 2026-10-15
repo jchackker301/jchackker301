@@ -1,0 +1,51 @@
+{
+  "name": "Desert-R",
+  "finish": "riven",
+  "base": [
+    0.5,
+    0.38,
+    0.17
+  ],
+  "dark": [
+    0.42,
+    0.31,
+    0.13
+  ],
+  "accent": [
+    0.56,
+    0.37,
+    0.12
+  ],
+  "light": [
+    0.66,
+    0.6,
+    0.46
+  ],
+  "accent_share": 0.15,
+  "speckle": 0.7,
+  "cloud": 0.35,
+  "stretch": 2.5,
+  "direction_deg": 0.0,
+  "wisp": 0.4,
+  "fleck": 0.2,
+  "mottle": 0.7,
+  "roughness": 0.9,
+  "riven_depth_mm": 2.5,
+  "size_mm": [
+    1000,
+    250,
+    50
+  ],
+  "source_photos": [],
+  "style_notes": "sandstone yellow-ochre body, orange-gold patches, pale cream wisps, strong curved riven swirl ledges. Coping/step piece. ESTIMATED by eye - run analyze_photo.py --size on the real Desert-R photos",
+  "style": {
+    "Direction": 0,
+    "Stretch": 2.5,
+    "Accent Amount": 0.4,
+    "Accent Scale": 1.5,
+    "Wisp Amount": 0.4,
+    "Edge Mottle": 0.7,
+    "Fleck Amount": 0.2,
+    "Riven Depth": 1.0
+  }
+}
